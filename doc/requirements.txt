@@ -1,0 +1,4 @@
+sphinx>=7.0,<10
+sphinx-rtd-theme>=3.0
+javasphinx>=0.9.15
+sphinxcontrib-plantuml
