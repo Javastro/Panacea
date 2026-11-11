@@ -45,20 +45,20 @@ public class AppRegistryResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAllTools(@QueryParam("page") Integer page, @QueryParam("size") Integer size) {
         if ((page != null) ^ (size != null)) {
-            return errorResponse("Both page and size must be specified or neither.");
+            return Utils.errorResponse("Both page and size must be specified or neither.");
         } else if ((page != null && page < 0) || (size != null && size < 1)) {
-            return errorResponse("Invalid pagination parameters. 'page' must be >= 0 and 'size' must be > 0.");
+            return Utils.errorResponse("Invalid pagination parameters. 'page' must be >= 0 and 'size' must be > 0.");
         }
 
         TypedQuery<Tool> query = em.createQuery("SELECT t FROM Tool t", Tool.class);
-        return performQuery(page, size, query);
+        return Utils.performQuery(page, size, query);
     }
 
     @GET
     @Path("/tools/{toolId}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getToolById(@PathParam("toolId") String toolId) {
-        Tool tool = findTool(em, toolId);
+        Tool tool = Utils.findToolInstance(em, toolId);
         if (tool != null) {
             return Response.ok(tool).build();
         } else {
@@ -73,7 +73,7 @@ public class AppRegistryResource {
     @Path("/tools")
     @Transactional
     public Response addTool(Tool tool) {
-        Tool existingTool = findTool(em, tool.getTool_id());
+        Tool existingTool = Utils.findToolInstance(em, tool.getTool_id());
         if (existingTool != null) {
             return Response.status(Response.Status.CONFLICT).build();
         } else {
@@ -89,12 +89,12 @@ public class AppRegistryResource {
     public Response updateTool(@PathParam("toolId") String toolId, Tool tool) {
         try {
             if (toolId == null || toolId.isEmpty()) {
-                return errorResponse("Invalid toolId");
+                return Utils.errorResponse("Invalid toolId");
             } else if (!toolId.equals(tool.getTool_id())) {
-                return errorResponse("toolId MUST be the same as tool.getTool_id()");
+                return Utils.errorResponse("toolId MUST be the same as tool.getTool_id()");
             }
 
-            Tool existing = findTool(em, toolId);
+            Tool existing = Utils.findToolInstance(em, toolId);
             if (existing != null) {
                 BeanUtils.copyProperties(existing, tool);
                 return Response.ok(existing).build();
@@ -105,7 +105,7 @@ public class AppRegistryResource {
                     .entity("Tool not found")
                     .build();
         } catch (Exception e) {
-            return errorResponse("Error updating tool: " + e.getMessage());
+            return Utils.errorResponse("Error updating tool: " + e.getMessage());
         }
     }
 
@@ -113,7 +113,7 @@ public class AppRegistryResource {
     @Path("/tools/{toolId}")
     @Transactional
     public Response deleteTool(@PathParam("toolId") String toolId) {
-        Tool tool = findTool(em, toolId);
+        Tool tool = Utils.findToolInstance(em, toolId);
         if (tool != null) {
             em.remove(tool);
             em.flush();
@@ -123,46 +123,6 @@ public class AppRegistryResource {
                     .type(MediaType.TEXT_PLAIN)
                     .entity("Tool with toolId " + toolId + " not found")
                     .build();
-        }
-    }
-
-    /**
-     * Performs the supplied query (with or without the pagination parameters)
-     * @param page zero-indexed page index
-     * @param size number of entries per page
-     * @param query query to perform
-     * @return Response containing HTTP response code and expected body if successful.
-     */
-    private static Response performQuery(Integer page, Integer size, TypedQuery<Tool> query) {
-        try {
-            if (page != null && size != null) {
-                int firstResult = page * size;
-                query.setFirstResult(firstResult);
-                query.setMaxResults(size);
-            }
-
-            List<Tool> tools = query.getResultList();
-            return Response.ok(tools).build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-        }
-    }
-
-    /**
-     * Checks to see if a tool with the supplied toolId already exists
-     * @param toolId Tool.tool_id
-     * @return The Tool if found, null if not
-     */
-    private Tool findTool(EntityManager em, String toolId) {
-        TypedQuery<Tool> existsQuery = em.createQuery(
-                "SELECT t FROM Tool t WHERE t.tool_id = :toolId", Tool.class
-        );
-
-        try {
-            existsQuery.setParameter("toolId", toolId);
-            return existsQuery.getSingleResult();
-        } catch (NoResultException e){
-            return null;
         }
     }
 
@@ -179,12 +139,5 @@ public class AppRegistryResource {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private Response errorResponse(String message) {
-        return Response.status(Response.Status.BAD_REQUEST)
-                .type(MediaType.TEXT_PLAIN)
-                .entity(message)
-                .build();
     }
 }
