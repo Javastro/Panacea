@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.apache.commons.beanutils.BeanUtils;
 import org.ivoa.dm.tool.Tool;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class AppRegistryResource {
 
     @GET
     @Path("/tools")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces(MediaType.APPLICATION_JSON)
     public Response getAllTools(@QueryParam("page") Integer page, @QueryParam("size") Integer size) {
         if ((page != null) ^ (size != null)) {
             return errorResponse("Both page and size must be specified or neither.");
@@ -51,6 +52,21 @@ public class AppRegistryResource {
 
         TypedQuery<Tool> query = em.createQuery("SELECT t FROM Tool t", Tool.class);
         return performQuery(page, size, query);
+    }
+
+    @GET
+    @Path("/tools/{toolId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getToolById(@PathParam("toolId") String toolId) {
+        Tool tool = findTool(em, toolId);
+        if (tool != null) {
+            return Response.ok(tool).build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .type(MediaType.TEXT_PLAIN)
+                    .entity("Tool with toolId " + toolId + " not found")
+                    .build();
+        }
     }
 
     @POST
@@ -64,6 +80,49 @@ public class AppRegistryResource {
             em.persist(tool);
             em.flush();
             return Response.ok().build();
+        }
+    }
+
+    @PUT
+    @Path("/tools/{toolId}")
+    @Transactional
+    public Response updateTool(@PathParam("toolId") String toolId, Tool tool) {
+        try {
+            if (toolId == null || toolId.isEmpty()) {
+                return errorResponse("Invalid toolId");
+            } else if (!toolId.equals(tool.getTool_id())) {
+                return errorResponse("toolId MUST be the same as tool.getTool_id()");
+            }
+
+            Tool existing = findTool(em, toolId);
+            if (existing != null) {
+                BeanUtils.copyProperties(existing, tool);
+                return Response.ok(existing).build();
+            }
+
+            return Response.status(Response.Status.NOT_FOUND)
+                    .type(MediaType.TEXT_PLAIN)
+                    .entity("Tool not found")
+                    .build();
+        } catch (Exception e) {
+            return errorResponse("Error updating tool: " + e.getMessage());
+        }
+    }
+
+    @DELETE
+    @Path("/tools/{toolId}")
+    @Transactional
+    public Response deleteTool(@PathParam("toolId") String toolId) {
+        Tool tool = findTool(em, toolId);
+        if (tool != null) {
+            em.remove(tool);
+            em.flush();
+            return Response.status(Response.Status.NO_CONTENT).build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .type(MediaType.TEXT_PLAIN)
+                    .entity("Tool with toolId " + toolId + " not found")
+                    .build();
         }
     }
 
@@ -83,9 +142,7 @@ public class AppRegistryResource {
             }
 
             List<Tool> tools = query.getResultList();
-            //ObservationListWrapper wrapper = new ObservationListWrapper(observations);
-
-            return Response.ok(/*wrapper*/tools).build();
+            return Response.ok(tools).build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }

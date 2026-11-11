@@ -9,4 +9,6 @@ dependencies {
 
     implementation("io.quarkus:quarkus-hibernate-orm")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
+
+    implementation("commons-beanutils:commons-beanutils:1.11.0")
 }
