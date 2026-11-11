@@ -4,11 +4,10 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
+import jakarta.transaction.Transactional;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.ivoa.dm.pdl.ParameterGroup;
 import org.ivoa.dm.tool.Tool;
 
 import java.util.List;
@@ -19,33 +18,44 @@ public class AppRegistryResource {
     @PersistenceContext
     protected EntityManager em;
 
-    Tool t1 = new Tool();
-
-    Tool t2 = Tool.createTool(builder -> {
+    //Temporary test data
+    Tool t1 = Tool.createTool(builder -> {
         builder.tool_id = "test-tool-1";
+        builder.version = "1.0";
         builder.command = List.of("my-command");
     });
 
-    public AppRegistryResource() {
-        t1.setTool_id("fits-calibration");
-    }
-
+    Tool t2 = Tool.createTool(builder -> {
+        builder.tool_id = "test-tool-2";
+        builder.version = "1.0";
+        builder.command = List.of("a-command");
+    });
 
     @GET
-    public Tool hello() {
-        return t1;
-        //return "Hello World!";
+    public String hello() {
+        addTestTool(t1);
+        addTestTool(t2);
+
+        return "Hello World!";
     }
 
     @GET
     @Path("/tools")
-    public Response getAllTools() {
+    @Produces({MediaType.APPLICATION_JSON})
+    public Response getAllTools(@QueryParam("page") Integer page, @QueryParam("size") Integer size) {
+        if ((page != null) ^ (size != null)) {
+            return errorResponse("Both page and size must be specified or neither.");
+        } else if ((page != null && page < 0) || (size != null && size < 1)) {
+            return errorResponse("Invalid pagination parameters. 'page' must be >= 0 and 'size' must be > 0.");
+        }
+
         TypedQuery<Tool> query = em.createQuery("SELECT t FROM Tool t", Tool.class);
-        return performQuery(0, 10, query);
+        return performQuery(page, size, query);
     }
 
     @POST
     @Path("/tools")
+    @Transactional
     public Response addTool(Tool tool) {
         Tool existingTool = findTool(em, tool.getTool_id());
         if (existingTool != null) {
@@ -97,5 +107,27 @@ public class AppRegistryResource {
         } catch (NoResultException e){
             return null;
         }
+    }
+
+    //To be replaced by the test data that's currently in the ExecutionDM unit test
+    private void addTestTool(Tool tool) {
+        try (Response response = addTool(tool)) {
+            if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+                System.out.println("Tool added successfully.");
+            } else if (response.getStatus() == Response.Status.CONFLICT.getStatusCode()) {
+                System.out.println("Tool already exists.");
+            } else {
+                System.out.println("Unexpected response status: " + response.getStatus());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Response errorResponse(String message) {
+        return Response.status(Response.Status.BAD_REQUEST)
+                .type(MediaType.TEXT_PLAIN)
+                .entity(message)
+                .build();
     }
 }
