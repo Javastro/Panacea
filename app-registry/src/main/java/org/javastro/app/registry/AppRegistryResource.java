@@ -205,6 +205,15 @@ public class AppRegistryResource {
     @PUT
     @Path("/tools/{toolId}")
     @Operation(summary = "Updates a specific tool", description = "Updates the tool instance found with the supplied toolId.")
+    @Parameters({
+            @Parameter(
+                    name = "toolId",
+                    description = "The unique identifier of the tool to update, see Tool.tool_id",
+                    in = ParameterIn.QUERY,
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true
+            )
+    })
     @RequestBody(
             description = "A Tool instance to replace the existing instance in the registry, must have a unique tool_id.",
             content = @Content(
@@ -256,6 +265,34 @@ public class AppRegistryResource {
 
     @DELETE
     @Path("/tools/{toolId}")
+    @Operation(summary = "Deletes a specific tool", description = "Deletes the tool instance found with the supplied toolId.")
+    @Parameters({
+            @Parameter(
+                    name = "toolId",
+                    description = "The unique identifier of the tool to delete, see Tool.tool_id",
+                    in = ParameterIn.QUERY,
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true
+            )
+    })
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "204",
+                    description = "Tool updated successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = Tool.class)
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "A tool with this ID does not exist"
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Error caused whilst attempting to update the tool."
+            )
+    })
     @Transactional
     public Response deleteTool(@PathParam("toolId") String toolId) {
         Tool tool = Utils.findToolInstance(em, toolId);
