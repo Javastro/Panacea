@@ -19,7 +19,6 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.ivoa.dm.tool.Tool;
-import org.jboss.resteasy.reactive.server.spi.RuntimeConfiguration;
 
 import java.util.List;
 
@@ -81,23 +80,25 @@ public class AppRegistryResource {
                     schema = @Schema(type = SchemaType.INTEGER, minimum = "1")
             )
     })
-    @APIResponse(
-            responseCode = "200",
-            description = "List of tools retrieved successfully",
-            content = {
-                    @Content(
-                            mediaType = MediaType.APPLICATION_JSON, schema = @Schema(allOf = {Tool.class})
-                    )
-            }
-    )
-    @APIResponse(
-            responseCode = "400",
-            description = "Parameter error (if supplied)."
-    )
-    @APIResponse(
-            responseCode = "500",
-            description = "Error whilst attempting to retrieve Tools."
-    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "List of tools retrieved successfully",
+                    content = {
+                            @Content(
+                                    mediaType = MediaType.APPLICATION_JSON, schema = @Schema(allOf = {Tool.class})
+                            )
+                    }
+            ),
+            @APIResponse(
+                    responseCode = "400",
+                    description = "Parameter error (if supplied)."
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Error whilst attempting to retrieve Tools."
+            )
+    })
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAllTools(@QueryParam("page") Integer page, @QueryParam("size") Integer size) {
         if ((page != null) ^ (size != null)) {
@@ -122,22 +123,24 @@ public class AppRegistryResource {
                     required = true
             )
     })
-    @APIResponse(
-            responseCode = "200",
-            description = "Tool retrieved successfully",
-            content = {
-                    @Content(
-                            mediaType = MediaType.APPLICATION_JSON, schema = @Schema(oneOf = {Tool.class})
-                    )
-            }
-    )
-    @APIResponse(
-            responseCode = "404",
-            description = "Tool not found"
-    )
-    @APIResponse(
-            responseCode = "500",
-            description = "Internal error whilst retrieving Tool."
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Tool retrieved successfully",
+                    content = {
+                            @Content(
+                                    mediaType = MediaType.APPLICATION_JSON, schema = @Schema(oneOf = {Tool.class})
+                            )
+                    }
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "Tool not found"
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Internal error whilst retrieving Tool."
+            )}
     )
     @Produces(MediaType.APPLICATION_JSON)
     public Response getToolById(@PathParam("toolId") String toolId) {
