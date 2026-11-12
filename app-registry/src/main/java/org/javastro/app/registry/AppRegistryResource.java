@@ -15,8 +15,11 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameters;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.ivoa.dm.tool.Tool;
+import org.jboss.resteasy.reactive.server.spi.RuntimeConfiguration;
 
 import java.util.List;
 
@@ -155,20 +158,78 @@ public class AppRegistryResource {
 
     @POST
     @Path("/tools")
+    @Operation(summary = "Adds a new tool", description = "Adds a new tool to the system, requires a unique Id.")
+    @Parameters({
+            @Parameter(
+                    name = "toolId",
+                    description = "The unique identifier of the tool to retrieve, see Tool.tool_id",
+                    in = ParameterIn.QUERY,
+                    schema = @Schema(type = SchemaType.STRING),
+                    required = true
+            )
+    })
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "201",
+                    description = "Tool created successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = Tool.class)
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "409",
+                    description = "A tool with this ID already exists"
+            ),
+            @APIResponse(
+            responseCode = "500",
+            description = "Error caused whilst attempting to add the tool."
+            )
+    })
     @Transactional
     public Response addTool(Tool tool) {
         Tool existingTool = Utils.findToolInstance(em, tool.getTool_id());
         if (existingTool != null) {
             return Response.status(Response.Status.CONFLICT).build();
-        } else {
+        }
+
+        try {
             em.persist(tool);
             em.flush();
-            return Response.ok().build();
+            return Response.status(Response.Status.CREATED).build();
+        } catch (Exception e) {
+            return Utils.errorResponse("Error retrieving tool: " + e.getMessage());
         }
     }
 
     @PUT
     @Path("/tools/{toolId}")
+    @Operation(summary = "Updates a specific tool", description = "Updates the tool instance found with the supplied toolId.")
+    @RequestBody(
+            description = "A Tool instance to replace the existing instance in the registry, must have a unique tool_id.",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON,
+                    schema = @Schema(implementation = Tool.class)
+            )
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode = "200",
+                    description = "Tool updated successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON,
+                            schema = @Schema(implementation = Tool.class)
+                    )
+            ),
+            @APIResponse(
+                    responseCode = "404",
+                    description = "A tool with this ID does not exist"
+            ),
+            @APIResponse(
+                    responseCode = "500",
+                    description = "Error caused whilst attempting to update the tool."
+            )
+    })
     @Transactional
     public Response updateTool(@PathParam("toolId") String toolId, Tool tool) {
         try {
