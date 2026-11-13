@@ -201,7 +201,7 @@ public class AppRegistryResource {
             em.flush();
             return Response.status(Response.Status.CREATED).build();
         } catch (Exception e) {
-            return Utils.errorResponse("Error retrieving tool: " + e.getMessage());
+            return Utils.errorResponse("Error adding tool: " + e.getMessage());
         }
     }
 
