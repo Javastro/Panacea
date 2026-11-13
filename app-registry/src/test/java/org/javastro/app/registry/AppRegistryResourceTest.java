@@ -87,4 +87,21 @@ public class AppRegistryResourceTest {
             assertEquals(2, tools.size());
         }
     }
+
+    @Test
+    @DisplayName("Check that the database can be populated with test data and retrieved by toolId.")
+    public void testDatabasePopulationAndRetrievalByToolId() {
+        try (var response = appRegistryResource.addTool(t1);
+             var response2 = appRegistryResource.addTool(t2)) {
+            System.out.println(response.getStatus());
+            assert response.getStatus() == Response.Status.CREATED.getStatusCode();
+            System.out.println(response2.getStatus());
+            assert response2.getStatus() == Response.Status.CREATED.getStatusCode();
+
+            var retrievalRes = appRegistryResource.getToolById(t1.getTool_id());
+            assertInstanceOf(Tool.class, retrievalRes.getEntity());
+            Tool tool = (Tool) retrievalRes.getEntity();
+            assertEquals(t1.getTool_id(), tool.getTool_id());
+        }
+    }
 }
