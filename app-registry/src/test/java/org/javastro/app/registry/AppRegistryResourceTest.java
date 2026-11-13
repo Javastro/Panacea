@@ -4,8 +4,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.core.Response;
 import org.ivoa.dm.tool.Tool;
-import org.ivoa.dm.tool.ToolImage;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
@@ -55,7 +55,7 @@ public class AppRegistryResourceTest {
     @DisplayName("Check that and empty database returns a robust response.")
     public void testEmptyDatabase() {
         var response = appRegistryResource.getAllTools(null, null);
-        assert response.getStatus() == 200;
+        assert response.getStatus() == Response.Status.OK.getStatusCode();
         assertInstanceOf(List.class, response.getEntity());
 
         List<?> tools = (List<?>) response.getEntity();
@@ -67,7 +67,7 @@ public class AppRegistryResourceTest {
     public void testDatabasePopulation() {
         try (var response = appRegistryResource.addTool(t1)) {
             System.out.println(response.getStatus());
-            assert response.getStatus() == 201;
+            assert response.getStatus() == Response.Status.CREATED.getStatusCode();
         }
     }
 
@@ -77,9 +77,9 @@ public class AppRegistryResourceTest {
         try (var response = appRegistryResource.addTool(t1);
              var response2 = appRegistryResource.addTool(t2)) {
             System.out.println(response.getStatus());
-            assert response.getStatus() == 201;
+            assert response.getStatus() == Response.Status.CREATED.getStatusCode();
             System.out.println(response2.getStatus());
-            assert response2.getStatus() == 201;
+            assert response2.getStatus() == Response.Status.CREATED.getStatusCode();
 
             var retrievalRes = appRegistryResource.getAllTools(null, null);
             assertInstanceOf(List.class, retrievalRes.getEntity());
